@@ -17,31 +17,25 @@ function initializeRedis(ip, port) {
 function getMembersOfRoom(roomName) {
   return new Promise(function (resolve, reject) {
     memberOfRoom = {};
-    let key_roomName = roomName + ":*";
+    let key_roomName = `${roomName}:*`;
     _client.keys(key_roomName, (err, users_in_room) => {
-      let number_user = users_in_room.length;
-      let count = 0;
       users_in_room.forEach(user_hash => {
-        _client.hvals(user_hash, (err, user_data) => {
-          count++;
+        _client.hmget(user_hash, 'uid', 'nickname', 'info', (err, user_data) => {
+          const [uid, nickname, infos] = user_data
           try {
-            let info = JSON.parse(user_data[3]);
+            let info = JSON.parse(infos);
             let user_obj = new User(
-              user_data[0],
-              user_data[1],
-              user_data[2],
+              uid,
+              nickname,
               info
             );
             memberOfRoom[user_data[0]] = user_obj;
           } catch (e) {
             reject(e);
           }
-
-          if (count == number_user) {
-            resolve(memberOfRoom);
-          }
         });
       });
+      resolve(memberOfRoom);
     });
     // resolve(_rooms[roomName]);
   });
@@ -57,12 +51,12 @@ function updateUserSocketId(roomName, uid, socketId) {
 
 function addUserToRoom(roomName, uid, user) {
   return new Promise(function (resolve, reject) {
-    let key_roomName = roomName + ":*";
+    let key_roomName = `${roomName}:*`;
     _client.keys(key_roomName, (err, users_in_room) => {
       if (err) {
         reject(err);
       }
-      let key_roomName_uid = roomName + ":" + uid;
+      let key_roomName_uid = `${roomName}:${uid}`;
       _client.keys(key_roomName_uid, (err, userdata) => {
         if (
           _limitRoomSize != 0 &&
@@ -72,7 +66,7 @@ function addUserToRoom(roomName, uid, user) {
           reject(-1);
         }
         if (_maxRoomPerUser != 0) {
-          let key_search = "*:" + uid;
+          let key_search = `*:${uid}`;
           _client.keys(key_search, (err, users) => {
             if (err) {
               reject(err);
@@ -81,7 +75,7 @@ function addUserToRoom(roomName, uid, user) {
               reject(-2);
             }
             let user_info = JSON.stringify(user.info);
-            let hashkey = roomName + ":" + uid;
+            let hashkey = `${roomName}:${uid}`;
             try {
               _client.hmset(
                 hashkey,
@@ -89,8 +83,6 @@ function addUserToRoom(roomName, uid, user) {
                 uid,
                 "nickname",
                 user.nickName,
-                "socketId",
-                user.socketId,
                 "info",
                 user_info
               );
@@ -102,42 +94,23 @@ function addUserToRoom(roomName, uid, user) {
         }
       });
     });
-    // if(_limitRoomSize != 0 && _rooms[roomName] != null && _rooms[roomName][uid] == null && Object.keys(_rooms[roomName]).length >= _limitRoomSize) {
-    // 	reject(-1);
-    // }
-    // if(_maxRoomPerUser != 0) {
-    // 	let count = 0;
-    // 	for(let room_name in _rooms) {
-    // 		if(_rooms[room_name][uid] != null)
-    // 			count++;
-    // 	}
-
-    // 	if(count >= _maxRoomPerUser) {
-    // 		reject(-2);
-    // 	}
-    // }
-
-    // if(_rooms[roomName] == null)
-    // 	_rooms[roomName] = {};
-
-    // _rooms[roomName][uid] = user;
   });
 }
 
 function getUserFromRoom(roomName, uid) {
   return new Promise(function (resolve, reject) {
-    let user_hash = roomName + ":" + uid;
-    _client.hvals(user_hash, (err, user_data) => {
+    let user_hash = `${roomName}:${uid}`;
+    _client.hmget(user_hash, 'uid', 'nickname', 'info', (err, user_data) => {
       if (err) {
         reject();
       }
       if (user_data && user_data.length) {
+        const [uid, nickname, infos] = user_data
         try {
-          let info = JSON.parse(user_data[3]);
+          let info = JSON.parse(infos);
           let user_obj = new User(
-            user_data[0], // uid
-            user_data[1], // nickname
-            user_data[2], // socketId
+            uid,
+            nickname,
             info
           );
           resolve(user_obj);
@@ -148,18 +121,12 @@ function getUserFromRoom(roomName, uid) {
         reject();
       }
     });
-    // if(_rooms[roomName] == null) {
-    // 	reject();
-    // }
-    // else {
-    // 	resolve(_rooms[roomName][uid]);
-    // }
   });
 }
 
 function removeUserFromRoom(roomName, uid) {
   return new Promise(function (resolve, reject) {
-    let user_hash = roomName + ":" + uid;
+    let user_hash = `${roomName}:${uid}`;
     _client.DEL(user_hash, (err, number) => {
       if (err) {
         reject();
@@ -168,13 +135,6 @@ function removeUserFromRoom(roomName, uid) {
         resolve();
       }
     });
-    // if(_rooms[roomName] == null) {
-    // 	reject();
-    // }
-    // else {
-    // 	delete _rooms[roomName][socketId];
-    // 	resolve();
-    // }
   });
 }
 
