@@ -136,9 +136,9 @@ function handleEvent(socket) {
     if (!message) return;
 
     if (message.send_to) {
-      _userManager.getUserFromRoom(message.room_name, message.send_to)
+      _userManager.getSocketId(message.send_to)
         .then((receiver) => {
-          sendSignalToTargetInRoom(socket, receiver.socketId, message);
+          sendSignalToTargetInRoom('message', socket, receiver, message);
         })
         .catch(() => {
           _log.writeServerLog(2, message.from + " send message fail. Receiver " + message.send_to + " doesn't exist");
