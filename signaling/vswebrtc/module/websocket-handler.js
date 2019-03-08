@@ -30,10 +30,9 @@ function handleEvent(socket) {
     _log.writeServerLog(3, "Server error: " + err.message);
   });
 
-  socket.on('update', function (old_info) {
-    old_info.forEach(elm => {
-      _userManager.updateUserSocketId(elm.room_name, elm.uid, socket.id);
-    });
+  socket.on('identify', function (data) {
+    const { uid } = data
+    _userManager.createUidvsSocket(uid, socket.id);
   });
 
   socket.on('enter', function (new_member) {
@@ -55,13 +54,13 @@ function handleEvent(socket) {
                   for (let uid in members) {
                     joinMsg.addMember(members[uid]);
                   }
-                  broadcastMessageToRoom(socket, joinMsg.toJson(), true);
+                  broadcastSignalToRoom(socket, joinMsg.toJson(), true);
                 }
               }).catch((err) => {
                 _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + err.message);
 
                 let joinFailMsg = new EnterFailMessage(roomName, errorCode.message);
-                sendMessageFromServer(socket, joinFailMsg.toJson());
+                sendSignalFromServer(socket, joinFailMsg.toJson());
               });
           }
         });
@@ -71,19 +70,19 @@ function handleEvent(socket) {
           _log.writeServerLog(3, newMember.uid + " joins room [" + roomName + "] fail. Reach to limitation of member in room: " + _userManager.getLimitRoomSize());
 
           let joinFailMsg = new EnterFailMessage(roomName, "Reach to limitation of member in room: " + _userManager.getLimitRoomSize());
-          sendMessageFromServer(socket, joinFailMsg.toJson());
+          sendSignalFromServer(socket, joinFailMsg.toJson());
         }
         else if (errorCode == -2) {
           _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. Reach to max of room per user: " + _userManager.getMaxRoomPerUser());
 
           let joinFailMsg = new EnterFailMessage(roomName, "Reach to max of room per user: " + _userManager.getMaxRoomPerUser());
-          sendMessageFromServer(socket, joinFailMsg.toJson());
+          sendSignalFromServer(socket, joinFailMsg.toJson());
         }
         else {
           _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + errorCode.message);
 
           let joinFailMsg = new EnterFailMessage(roomName, errorCode.message);
-          sendMessageFromServer(socket, joinFailMsg.toJson());
+          sendSignalFromServer(socket, joinFailMsg.toJson());
         }
       });
   });
@@ -120,7 +119,7 @@ function handleEvent(socket) {
               for (let uId in members) {
                 leaveMsg.addMember(members[uId]);
               }
-              broadcastMessageToRoom(socket, leaveMsg.toJson(), true);
+              broadcastSignalToRoom(socket, leaveMsg.toJson(), true);
             });
         }
       }
@@ -129,7 +128,7 @@ function handleEvent(socket) {
         _log.writeServerLog(3, errorCode);
 
         let leaveFailMsg = new ExitFailMessage(roomName, "Not in this room");
-        sendMessageFromServer(socket, leaveFailMsg.toJson());
+        sendSignalFromServer(socket, leaveFailMsg.toJson());
       });
   });
 
@@ -139,14 +138,30 @@ function handleEvent(socket) {
     if (message.send_to) {
       _userManager.getUserFromRoom(message.room_name, message.send_to)
         .then((receiver) => {
-          sendMessageToTargetInRoom(socket, receiver.socketId, message);
+          sendSignalToTargetInRoom(socket, receiver.socketId, message);
         })
         .catch(() => {
           _log.writeServerLog(2, message.from + " send message fail. Receiver " + message.send_to + " doesn't exist");
         });
     }
     else {
-      broadcastMessageToRoom(socket, message, false);
+      broadcastSignalToRoom(socket, message, false);
+    }
+  });
+
+  socket.on('handshake', function (message) {
+    if (!message) return;
+    if (message.send_to) {
+      _userManager.getSocketId(message.send_to)
+        .then(receiver => {
+          sendSignalToTargetInRoom('handshake', socket, receiver, message);
+        })
+        .catch(() => {
+          _log.writeServerLog(2, message.from + " send message fail. Receiver " + message.send_to + " doesn't exist");
+        });
+    }
+    else {
+      broadcastSignalToRoom(socket, message, false);
     }
   });
 
@@ -156,7 +171,7 @@ function handleEvent(socket) {
 }
 
 //----------
-function broadcastMessageToRoom(socket, message, includeMe) {
+function broadcastSignalToRoom(socket, message, includeMe) {
   if (message.room_name) {
     try {
       if (includeMe) {
@@ -167,30 +182,30 @@ function broadcastMessageToRoom(socket, message, includeMe) {
       }
       _log.writeServerLog(0, message.from + " broadcasts msg: " + JSON.stringify(message));
     } catch (e) {
-      _log.writeServerLog(3, "broadcastMessageToRoom error: " + e.message);
+      _log.writeServerLog(3, "broadcastSignalToRoom error: " + e.message);
     }
   }
 }
 
-function sendMessageToTargetInRoom(socket, target, message) {
+function sendSignalToTargetInRoom(type, socket, target, message) {
   if (target) {
     try {
-      socket.to(target).emit('message', message);
+      socket.to(target).emit(type, message);
       _log.writeServerLog(0, message.from + " send msg: " + JSON.stringify(message));
     } catch (e) {
-      _log.writeServerLog(3, "sendMessageToTargetInRoom error: " + e.message);
+      _log.writeServerLog(3, "sendSignalToTargetInRoom error: " + e.message);
     }
     return;
   }
 }
 
-function sendMessageFromServer(targetSocket, message) {
+function sendSignalFromServer(targetSocket, message) {
   if (targetSocket) {
     try {
       targetSocket.emit('message', message);
       _log.writeServerLog(0, "Server send msg: " + JSON.stringify(message));
     } catch (e) {
-      _log.writeServerLog(3, "sendMessageFromServer error: " + e.message);
+      _log.writeServerLog(3, "sendSignalFromServer error: " + e.message);
     }
     return;
   }

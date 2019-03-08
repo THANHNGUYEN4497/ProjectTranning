@@ -19,8 +19,11 @@ function getMembersOfRoom(roomName) {
     memberOfRoom = {};
     let key_roomName = `${roomName}:*`;
     _client.keys(key_roomName, (err, users_in_room) => {
+      let number_user = users_in_room.length;
+      let count = 0;
       users_in_room.forEach(user_hash => {
         _client.hmget(user_hash, 'uid', 'nickname', 'info', (err, user_data) => {
+          count++;
           const [uid, nickname, infos] = user_data
           try {
             let info = JSON.parse(infos);
@@ -33,20 +36,45 @@ function getMembersOfRoom(roomName) {
           } catch (e) {
             reject(e);
           }
+          if (count === number_user) {
+            resolve(memberOfRoom);
+          }
         });
       });
-      resolve(memberOfRoom);
     });
-    // resolve(_rooms[roomName]);
   });
 }
 
-function updateUserSocketId(roomName, uid, socketId) {
-  return new Promise(function (resolve, reject) {
-    let hashkey = roomName + ":" + uid;
-    _client.hmset(hashkey, "socketId", socketId);
-    resolve();
+function createUidvsSocket(uid, socketId) {
+  return new Promise((resolve, reject) => {
+    try {
+      _client.hget('uid2socket', uid, (err, socketIdOld) => {
+        if (socketIdOld === null) {
+          _client.hset('uid2socket', uid, socketId);
+          _client.hset('socket2uid', socketId, uid);
+        } else {
+          _client.hset('uid2socket', uid, socketId);
+          _client.hdel('socket2uid', socketIdOld, uid);
+          _client.hset('socket2uid', socketId, uid);
+        }
+      });
+      resolve();
+    } catch (err) {
+      reject()
+    }
   });
+}
+
+function getSocketId(uid) {
+  return new Promise((resolve, reject) => {
+    try {
+      _client.hget('uid2socket', uid, (err, socketId) => {
+        resolve(socketId);
+      })
+    } catch (err) {
+      reject()
+    }
+  })
 }
 
 function addUserToRoom(roomName, uid, user) {
@@ -179,7 +207,8 @@ function getMaxRoomPerUser() {
 //----------
 exports.initializeRedis = initializeRedis;
 exports.getMembersOfRoom = getMembersOfRoom;
-exports.updateUserSocketId = updateUserSocketId;
+exports.createUidvsSocket = createUidvsSocket;
+exports.getSocketId = getSocketId;
 exports.addUserToRoom = addUserToRoom;
 exports.getUserFromRoom = getUserFromRoom;
 exports.removeUserFromRoom = removeUserFromRoom;
