@@ -2,10 +2,6 @@ const redis = require("redis");
 
 const User = require("../object/user.js");
 
-//var _rooms = {};
-
-var _limitRoomSize = 0;
-var _maxRoomPerUser = 0;
 var _client;
 
 function initializeRedis(ip, port) {
@@ -78,50 +74,23 @@ function getSocketId(uid) {
 }
 
 function addUserToRoom(roomName, uid, user) {
-  return new Promise(function (resolve, reject) {
-    let key_roomName = `${roomName}:*`;
-    _client.keys(key_roomName, (err, users_in_room) => {
-      if (err) {
-        reject(err);
-      }
-      let key_roomName_uid = `${roomName}:${uid}`;
-      _client.keys(key_roomName_uid, (err, userdata) => {
-        if (
-          _limitRoomSize != 0 &&
-          userdata == null &&
-          users_in_room.length >= _limitRoomSize
-        ) {
-          reject(-1);
-        }
-        if (_maxRoomPerUser != 0) {
-          let key_search = `*:${uid}`;
-          _client.keys(key_search, (err, users) => {
-            if (err) {
-              reject(err);
-            }
-            if (users.length >= _maxRoomPerUser) {
-              reject(-2);
-            }
-            let user_info = JSON.stringify(user.info);
-            let hashkey = `${roomName}:${uid}`;
-            try {
-              _client.hmset(
-                hashkey,
-                "uid",
-                uid,
-                "nickname",
-                user.nickName,
-                "info",
-                user_info
-              );
-              resolve();
-            } catch (e) {
-              reject(e);
-            }
-          });
-        }
-      });
-    });
+    return new Promise(function (resolve, reject) {
+    let hashkey = roomName + ":" + uid;
+    try {
+      let user_info = JSON.stringify(user.info);
+      _client.hmset(
+        hashkey,
+        "uid",
+        uid,
+        "nickname",
+        user.nickName,
+        "info",
+        user_info
+      );
+      resolve();
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -166,44 +135,6 @@ function removeUserFromRoom(roomName, uid) {
   });
 }
 
-// function getUserBySocketIdFromRoom(roomName, socketId) {
-// 	return new Promise(function(resolve, reject) {
-// 		if(_rooms[roomName] == null) {
-// 			return reject();
-// 		}
-// 		else {
-// 			for (let uid in _rooms[roomName]) {
-// 				if(_rooms[roomName][uid].socket_id == socketId)
-// 					return resolve(_rooms[roomName][uid]);
-// 			}
-// 		}
-
-// 		reject();
-// 	});
-// }
-
-function setLimitRoomSize(limitRoomSize) {
-  _limitRoomSize = limitRoomSize;
-}
-
-function getLimitRoomSize() {
-  return _limitRoomSize;
-}
-
-function setMaxRoomPerUser(maxRoomPerUser) {
-  _maxRoomPerUser = maxRoomPerUser;
-}
-
-function getMaxRoomPerUser() {
-  return _maxRoomPerUser;
-}
-
-// function getRoomSize(roomName) {
-// 	return new Promise(function(resolve, reject) {
-// 		return resolve(Object.keys(_rooms[roomName]).length);
-// 	});
-// }
-
 //----------
 exports.initializeRedis = initializeRedis;
 exports.getMembersOfRoom = getMembersOfRoom;
@@ -212,9 +143,3 @@ exports.getSocketId = getSocketId;
 exports.addUserToRoom = addUserToRoom;
 exports.getUserFromRoom = getUserFromRoom;
 exports.removeUserFromRoom = removeUserFromRoom;
-// exports.getUserBySocketIdFromRoom = getUserBySocketIdFromRoom;
-// exports.getRoomSize = getRoomSize;
-exports.setLimitRoomSize = setLimitRoomSize;
-exports.getLimitRoomSize = getLimitRoomSize;
-exports.setMaxRoomPerUser = setMaxRoomPerUser;
-exports.getMaxRoomPerUser = getMaxRoomPerUser;

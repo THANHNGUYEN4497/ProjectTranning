@@ -5,9 +5,7 @@ const _userManager = require("./module/user-manager.js");
 
 //------------------
 function start(httpPort, redisServerInfo, sslOptions) {	
-	_log.writeServerLog(2,"Listenning on "+httpPort+(sslOptions == null?"":"(SSL)")+"...");	
-	_log.writeServerLog(2,"Limit room size (user per room): "+_userManager.getLimitRoomSize());	
-	_log.writeServerLog(2,"Max room per user: "+_userManager.getMaxRoomPerUser());	
+	_log.writeServerLog(2,"Listenning on "+httpPort+(sslOptions == null?"":"(SSL)")+"...");
 	
 	_userManager.initializeRedis(redisServerInfo.host,redisServerInfo.port);
 
@@ -29,15 +27,5 @@ function start(httpPort, redisServerInfo, sslOptions) {
 	_webSocketHandler.handle(webServer, redisServerInfo, _userManager);
 }
 
-function setLimitRoomSize(limitRoomSize) {	
-	_userManager.setLimitRoomSize(limitRoomSize);
-}
-
-function setMaxRoomPerUser(maxRoomPerUser) {	
-	_userManager.setMaxRoomPerUser(maxRoomPerUser);
-}
-
 //------------------
 exports.start = start;
-exports.setLimitRoomSize = setLimitRoomSize;
-exports.setMaxRoomPerUser = setMaxRoomPerUser;

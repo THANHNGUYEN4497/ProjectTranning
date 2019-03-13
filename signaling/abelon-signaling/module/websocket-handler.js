@@ -66,24 +66,10 @@ function handleEvent(socket) {
         });
       })
       .catch((errorCode) => {
-        if (errorCode == -1) {
-          _log.writeServerLog(3, newMember.uid + " joins room [" + roomName + "] fail. Reach to limitation of member in room: " + _userManager.getLimitRoomSize());
+		_log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + errorCode.message);
 
-          let joinFailMsg = new EnterFailMessage(roomName, "Reach to limitation of member in room: " + _userManager.getLimitRoomSize());
-          sendSignalFromServer(socket, joinFailMsg.toJson());
-        }
-        else if (errorCode == -2) {
-          _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. Reach to max of room per user: " + _userManager.getMaxRoomPerUser());
-
-          let joinFailMsg = new EnterFailMessage(roomName, "Reach to max of room per user: " + _userManager.getMaxRoomPerUser());
-          sendSignalFromServer(socket, joinFailMsg.toJson());
-        }
-        else {
-          _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + errorCode.message);
-
-          let joinFailMsg = new EnterFailMessage(roomName, errorCode.message);
-          sendSignalFromServer(socket, joinFailMsg.toJson());
-        }
+		let joinFailMsg = new EnterFailMessage(roomName, errorCode.message);
+		sendSignalFromServer(socket, joinFailMsg.toJson());
       });
   });
 

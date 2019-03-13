@@ -5,9 +5,6 @@ console.log("-------------------------------");
 const _abelonSignalingServer = require("./abelon-signaling/abelon-signaling-server.js");
 const _environment = require("./environments/environment.js");
 
-_abelonSignalingServer.setLimitRoomSize(process.argv[3] || 100);
-_abelonSignalingServer.setMaxRoomPerUser(process.argv[4] || 2);
-
 if (_environment.configuration.SSL) {
   const _fs = require('fs');
   const sslOptions = {
