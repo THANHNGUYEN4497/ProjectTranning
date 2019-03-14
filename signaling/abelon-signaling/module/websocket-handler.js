@@ -37,7 +37,7 @@ function handleEvent(socket) {
 
   socket.on('enter', function (new_member) {
     let roomName = new_member.room_name;
-    let newMember = new User(new_member.uid, new_member.nick_name, socket.id, new_member.info);
+    let newMember = new User(new_member.uid, new_member.nick_name, new_member.info);
 
     _userManager.addUserToRoom(roomName, newMember.uid, newMember)
       .then(() => {
@@ -66,10 +66,10 @@ function handleEvent(socket) {
         });
       })
       .catch((errorCode) => {
-		_log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + errorCode.message);
+        _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + errorCode.message);
 
-		let joinFailMsg = new EnterFailMessage(roomName, errorCode.message);
-		sendSignalFromServer(socket, joinFailMsg.toJson());
+        let joinFailMsg = new EnterFailMessage(roomName, errorCode.message);
+        sendSignalFromServer(socket, joinFailMsg.toJson());
       });
   });
 
@@ -92,7 +92,7 @@ function handleEvent(socket) {
       .then((members) => {
         if (members != null) {
           let leaveMsg = new RoomMessage(roomName, uid);
-          leaveMsg.leftMember = new User(uid, currentUser.nickName, socket.id, currentUser.info);
+          leaveMsg.leftMember = new User(uid, currentUser.nickName, currentUser.info);
           _userManager.removeUserFromRoom(roomName, uid)
             .then(() => {
               _io.of('/').adapter.remoteLeave(socket.id, roomName, (err) => {
