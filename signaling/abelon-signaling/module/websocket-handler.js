@@ -54,7 +54,7 @@ function handleEvent(socket) {
                   for (let uid in members) {
                     joinMsg.addMember(members[uid]);
                   }
-                  broadcastSignalToRoom(socket, joinMsg.toJson(), true);
+                  broadcastSignalToRoom('message', socket, joinMsg.toJson(), true);
                 }
               }).catch((err) => {
                 _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + err.message);
@@ -105,7 +105,7 @@ function handleEvent(socket) {
               for (let uId in members) {
                 leaveMsg.addMember(members[uId]);
               }
-              broadcastSignalToRoom(socket, leaveMsg.toJson(), true);
+              broadcastSignalToRoom('message', socket, leaveMsg.toJson(), true);
             });
         }
       }
@@ -131,10 +131,15 @@ function handleEvent(socket) {
         });
     }
     else {
-      broadcastSignalToRoom(socket, message, false);
+      broadcastSignalToRoom('message', socket, message, false);
     }
   });
 
+  socket.on('switch_lang', function (message) {
+    if (!message) return;
+    broadcastSignalToRoom('switch_lang', socket, message, true);
+  });
+  
   socket.on('handshake', function (message) {
     if (!message) return;
     if (message.send_to) {
@@ -147,7 +152,7 @@ function handleEvent(socket) {
         });
     }
     else {
-      broadcastSignalToRoom(socket, message, false);
+      broadcastSignalToRoom('handshake', socket, message, false);
     }
   });
 
@@ -157,16 +162,16 @@ function handleEvent(socket) {
 }
 
 //----------
-function broadcastSignalToRoom(socket, message, includeMe) {
+function broadcastSignalToRoom(emitType, socket, message, includeMe) {
   if (message.room_name) {
     try {
       if (includeMe) {
-        _io.sockets.in(message.room_name).emit('message', message);
+        _io.sockets.in(message.room_name).emit(emitType, message);
       }
       else {
-        socket.broadcast.to(message.room_name).emit('message', message);
+        socket.broadcast.to(message.room_name).emit(emitType, message);
       }
-      _log.writeServerLog(0, message.from + " broadcasts msg: " + JSON.stringify(message));
+      _log.writeServerLog(0, message.from + " broadcasts <"+emitType+">: " + JSON.stringify(message));
     } catch (e) {
       _log.writeServerLog(3, "broadcastSignalToRoom error: " + e.message);
     }
