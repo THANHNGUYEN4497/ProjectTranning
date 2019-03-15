@@ -1,8 +1,8 @@
 const Message = require("../message.js");
 
 class InRoomMessage extends Message {
-    constructor(type, roomName) {
-        super(type, roomName);
+    constructor(roomName) {
+        super(roomName);
 
         this._roomName = roomName;
     }

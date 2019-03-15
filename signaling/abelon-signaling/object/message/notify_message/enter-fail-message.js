@@ -9,7 +9,7 @@ class EnterFailMessage extends NotifyMessage {
     }
 
     toJson() {
-        return {"type":this._type,"event":this._event,"content":{"room_name":this._roomName,"error_msg":this._errorMsg}};
+        return {"event":this._event,"content":{"room_name":this._roomName,"error_msg":this._errorMsg}};
     }
 }
 

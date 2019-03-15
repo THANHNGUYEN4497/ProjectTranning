@@ -1,6 +1,5 @@
 class Message {
     constructor(type) {
-        this._type = type;
     }
 
     toJson() {

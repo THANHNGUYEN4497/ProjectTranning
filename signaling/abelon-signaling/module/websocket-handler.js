@@ -54,7 +54,7 @@ function handleEvent(socket) {
                   for (let uid in members) {
                     joinMsg.addMember(members[uid]);
                   }
-                  broadcastSignalToRoom('message', socket, joinMsg.toJson(), true);
+                  broadcastSignalToRoom('room', socket, joinMsg.toJson(), true);
                 }
               }).catch((err) => {
                 _log.writeServerLog(3, newMember.uid + " creates room [" + roomName + "] fail. " + err.message);
@@ -105,7 +105,7 @@ function handleEvent(socket) {
               for (let uId in members) {
                 leaveMsg.addMember(members[uId]);
               }
-              broadcastSignalToRoom('message', socket, leaveMsg.toJson(), true);
+              broadcastSignalToRoom('room', socket, leaveMsg.toJson(), true);
             });
         }
       }

@@ -2,7 +2,7 @@ const InRoomMessage = require("./in-room-message.js");
 
 class RoomMessage extends InRoomMessage {
     constructor(roomName, from) {
-        super("room", roomName);
+        super(roomName);
 
         this._from = from;
         this._members = [];
@@ -21,7 +21,7 @@ class RoomMessage extends InRoomMessage {
     }
 
     toJson() {
-        let jsonValue = {"type":this._type,"room_name":this._roomName,"from":this._from, "members":[]};
+        let jsonValue = {"room_name":this._roomName,"from":this._from, "members":[]};
         if(this._joinedMember == undefined)
             jsonValue.left_member = this._leftMember.toJson();
         else
