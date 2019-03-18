@@ -1,0 +1,55 @@
+version: '3'
+services:
+  centos6_apache_php7_ssl:
+    build:
+      context: ./dockerfile
+      dockerfile: centos6_apache_php_ssl_Dockerfile
+    volumes:
+      - './config/httpd/httpd_ssl.conf:/etc/httpd/conf/httpd.conf'
+      - './config/httpd/ssl.conf:/etc/httpd/conf.d/ssl.conf'
+      - './log/httpd:/var/log/httpd'
+      - '${APACHE_DOC_ROOT}:/var/www/html'
+      - './config/php/php.ini:/etc/php.ini'
+      - './log/php:/var/log/php'
+    ports:
+      - '${APACHE_PORT}:443'
+    environment:
+      - 'APACHE_HOST=${APACHE_HOST}'
+    restart: always
+    depends_on:
+      - mysqldb
+      - composer_install
+    links:
+      - mysqldb
+  composer_install:
+    image: composer
+    volumes:
+      - '${APACHE_DOC_ROOT}:/app'
+    command: install
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - '${PHPMYADMIN_PORT}:80'
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysqldb
+    restart: always
+    depends_on:
+      - mysqldb
+  mysqldb:
+    image: 'mysql:5.7.22'
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - 'MYSQL_DATABASE=${MYSQL_DATABASE}'
+      - 'MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}'
+      - 'MYSQL_USER=${MYSQL_USER}'
+      - 'MYSQL_PASSWORD=${MYSQL_PASSWORD}'
+    ports:
+      - '${MYSQL_PORT}:3306'
+    volumes:
+      - './config/mysql/my.cnf:/etc/mysql/my.cnf'
+      - './log/mysql:/var/log/mysql'
+      - './data/mysql:/var/lib/mysql'

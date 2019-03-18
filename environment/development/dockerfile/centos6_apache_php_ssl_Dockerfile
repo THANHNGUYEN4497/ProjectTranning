@@ -1,0 +1,19 @@
+FROM centos:centos6.9
+
+MAINTAINER san.vo
+
+RUN yum -y update; yum clean all
+RUN yum -y install httpd;
+
+RUN yum -y install epel-release
+RUN rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+RUN yum -y --enablerepo=remi-php72 install php
+RUN yum -y --enablerepo=remi-php72 install php-xml php-soap php-xmlrpc php-mbstring php-json php-gd php-mcrypt php-pdo php-pdo_mysql
+RUN yum clean all
+
+RUN yum -y install mod_ssl
+
+
+EXPOSE 80
+
+CMD ["/usr/sbin/httpd", "-D", "FOREGROUND"]
